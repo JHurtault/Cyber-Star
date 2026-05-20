@@ -1,42 +1,33 @@
-import random
-import os
-import csv
+import random, os, csv
 
 def load_words(filepath="CyberStar_words.csv"):
     with open(filepath, newline="") as f:
-        reader = csv.DictReader(f)
-        return [row["word"] for row in reader]
+        return [row["word"] for row in csv.DictReader(f)]
 
 WORD_LIST = load_words()
 
-OUTER_FLEET = [
-    ("Ogun-X Dreadnought",  "████████████"),
-    ("Sankofa Void Reaper", "██████████"),
-    ("Neon Griot Specter",  "████████"),
-    ("Adinkra Wraith",      "██████"),
-]
-
-INNER_FLEET = [
-    ("Kente Glitch Runner", "████████████"),
-    ("Juju Wire Shade",     "██████████"),
-    ("Nyame Ghost Bit",     "████████"),
-    ("Anansi Cipher Blade", "██████"),
-]
-
-EARTH_DEFENSE_FLEET = [
-    ("Ashanti Iron Aegis",  "████████████"),
-    ("Oduduwa Last Stand",  "██████████"),
-    ("Zulu Neon Bastion",   "████████"),
-    ("Sankofa Final Ark",   "██████"),
-]
-
 FLEETS = [
-    ("OUTER FLEET",         OUTER_FLEET),
-    ("INNER FLEET",         INNER_FLEET),
-    ("EARTH DEFENSE FLEET", EARTH_DEFENSE_FLEET),
+    ("OUTER FLEET", [
+        ("Ogun-X Dreadnought",  "████████████"),
+        ("Sankofa Void Reaper", "██████████"),
+        ("Neon Griot Specter",  "████████"),
+        ("Adinkra Wraith",      "██████"),
+    ]),
+    ("INNER FLEET", [
+        ("Kente Glitch Runner", "████████████"),
+        ("Juju Wire Shade",     "██████████"),
+        ("Nyame Ghost Bit",     "████████"),
+        ("Anansi Cipher Blade", "██████"),
+    ]),
+    ("EARTH DEFENSE FLEET", [
+        ("Ashanti Iron Aegis",  "████████████"),
+        ("Oduduwa Last Stand",  "██████████"),
+        ("Zulu Neon Bastion",   "████████"),
+        ("Sankofa Final Ark",   "██████"),
+    ]),
 ]
 
-DESTROYED_MESSAGES = [
+DESTROYED_MSGS = [
     "The ancestors mourn its loss.",
     "Its neon adinkra symbols fade to dark.",
     "The griot will sing no more of this vessel.",
@@ -60,148 +51,113 @@ DEFEAT_LINES = [
     "Your kente-hull burns in the cold dark between stars.",
 ]
 
+HEADER = (
+    "╔══════════════════════════════════════════════════╗\n"
+    "║   ✦  C Y B E R   S T A R  :  W O R D  W A R S  ✦  ║\n"
+    "╚══════════════════════════════════════════════════╝"
+)
 
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
-
 def display_word(word, guessed):
     return "  ".join(c.upper() if c in guessed else "_" for c in word)
 
+def get_fleet(base, word_length):
+    return list(base[:min(max(word_length - 3, 2), len(base))])
 
-def assign_fleet(base_fleet, word_length):
-    num_ships = min(max(word_length - 3, 2), len(base_fleet))
-    return list(base_fleet[:num_ships])
-
-
-def render(word, guessed, wrong_letters, fleet, fleet_name, ships_lost, reinforcement_available, fleet_index, message=""):
+def render(word, guessed, wrong, fleet, fleet_name, lost, reinf, idx, msg=""):
     clear()
-    print("╔══════════════════════════════════════════════════╗")
-    print("║   ✦  C Y B E R   S T A R  :  W O R D  W A R S  ✦  ║")
-    print("╚══════════════════════════════════════════════════╝\n")
-
-    print(f"  ── {fleet_name} (Line {fleet_index + 1} of 3) ──────────────────────")
+    print(HEADER + "\n")
+    print(f"  ── {fleet_name} (Line {idx + 1} of 3) ──────────────────────")
     for i, (name, hull) in enumerate(fleet):
-        if i < ships_lost:
+        if i < lost:
             print(f"  ✕  {name:<24}  {'~' * len(hull)}  [STARSHIP DESTROYED!]")
         else:
             print(f"  ▶  {name:<24}  {hull}")
-
-    remaining = len(fleet) - ships_lost
-    reinf_status = "✔ AVAILABLE  (type '9' to use  |  '0' to quit)" if reinforcement_available else "✘ USED  (type '0' to quit)"
-    print(f"\n  Ships remaining : {remaining} / {len(fleet)}")
-    print(f"  Reinforcement   : {reinf_status}")
-    print()
-    print("  WORD:   ", display_word(word, guessed))
-
-    if wrong_letters:
-        print(f"\n  Wrong letters:  {', '.join(sorted(wrong_letters)).upper()}")
-    else:
-        print("\n  Wrong letters:  —")
-
-    if message:
-        print(f"\n  ▶  {message}")
+    reinf_str = "✔ AVAILABLE  (type '9' to use  |  '0' to quit)" if reinf else "✘ USED  (type '0' to quit)"
+    print(f"\n  Ships remaining : {len(fleet) - lost} / {len(fleet)}")
+    print(f"  Reinforcement   : {reinf_str}")
+    print(f"\n  WORD:    {display_word(word, guessed)}")
+    print(f"\n  Wrong letters:  {', '.join(sorted(wrong)).upper() if wrong else '—'}")
+    if msg:
+        print(f"\n  ▶  {msg}")
     print()
 
-
-def play_fleet(word, guessed, wrong_letters, fleet_index):
-    fleet_name, base_fleet = FLEETS[fleet_index]
-    fleet = assign_fleet(base_fleet, len(word))
-    ships_lost = 0
-    reinforcement_available = True
-
-    if fleet_index == 0:
-        message = f"⬡ {fleet_name} deployed — {len(fleet)} vessels stand ready. Guess a letter!"
-    else:
-        message = f"⬡ Enemy breaches the line! {fleet_name} now engages. Guess a letter!"
+def play_fleet(word, guessed, wrong, idx):
+    fleet_name, base = FLEETS[idx]
+    fleet = get_fleet(base, len(word))
+    lost, reinf = 0, True
+    msg = (f"⬡ {fleet_name} deployed. {len(fleet)} vessels ready. Guess a letter."
+           if idx == 0 else
+           f"⬡ {fleet_name} now active. Enemy has broken through. Guess a letter.")
 
     while True:
-        word_done = all(c in guessed for c in word)
-        render(word, guessed, wrong_letters, fleet, fleet_name, ships_lost, reinforcement_available, fleet_index, message)
+        render(word, guessed, wrong, fleet, fleet_name, lost, reinf, idx, msg)
 
-        if word_done:
+        if all(c in guessed for c in word):
             return "win"
 
-        if ships_lost >= len(fleet):
-            if fleet_index < 2:
-                print(f"  ⚠  {fleet_name} has fallen! The enemy pushes closer to Earth...")
+        if lost >= len(fleet):
+            if idx < 2:
+                print(f"  ⚠  {fleet_name} gone. Enemy is closing in on Earth.")
                 input("  Press Enter to deploy the next fleet...")
                 return "next"
-            else:
-                return "lose"
+            return "lose"
 
         raw = input("  Your guess (letter), '9' for Reinforcement, or '0' to quit → ").strip().lower()
 
         if raw == "0":
-            print("\n  ⚠  Retreating from battle... Sankofa — go back and fetch it. Until next time, warrior.\n")
+            print("\n  ⚠  Session ended. Sankofa — go back and fetch it. Until next time.\n")
             exit()
-
         elif raw == "9":
-            if not reinforcement_available:
-                message = "⚠ Reinforcement already used this fleet. Fight on, warrior!"
-            elif ships_lost == 0:
-                message = "⚠ No ships lost yet — save your reinforcement for when you need it."
+            if not reinf:
+                msg = "⚠ Reinforcement already used. No more backup this fleet."
+            elif lost == 0:
+                msg = "⚠ No ships lost yet. Hold your reinforcement."
             else:
-                reinforcement_available = False
-                ships_lost -= 1
-                restored = fleet[ships_lost][0]
-                message = f"★ Reinforcement called! {restored} has been restored to the line!"
-
+                reinf = False
+                lost -= 1
+                msg = f"★ Reinforcement deployed. {fleet[lost][0]} is back in the fight."
         elif len(raw) == 1 and raw.isalpha():
-            if raw in guessed or raw in wrong_letters:
-                message = f"You already called '{raw.upper()}' into the void. Try another."
+            if raw in guessed or raw in wrong:
+                msg = f"Already guessed '{raw.upper()}'. Try a different letter."
             elif raw in word:
                 guessed.add(raw)
-                revealed = sum(1 for c in word if c == raw)
-                message = f"✓ '{raw.upper()}' resonates through the kente-grid! ({revealed} occurrence{'s' if revealed > 1 else ''})"
+                count = word.count(raw)
+                msg = f"✓ '{raw.upper()}' found. {count} occurrence{'s' if count > 1 else ''} revealed."
             else:
-                wrong_letters.add(raw)
-                destroy_msg = DESTROYED_MESSAGES[min(ships_lost, len(DESTROYED_MESSAGES) - 1)]
-                ships_lost += 1
-                if ships_lost <= len(fleet):
-                    destroyed = fleet[ships_lost - 1][0]
-                    remaining = len(fleet) - ships_lost
-                    message = f"✗ '{raw.upper()}' not found — {destroyed}: STARSHIP DESTROYED! {destroy_msg} {remaining} ship(s) remain."
+                wrong.add(raw)
+                dmsg = DESTROYED_MSGS[min(lost, len(DESTROYED_MSGS) - 1)]
+                lost += 1
+                if lost <= len(fleet):
+                    msg = f"✗ '{raw.upper()}' not found. {fleet[lost-1][0]}: STARSHIP DESTROYED! {dmsg} {len(fleet)-lost} ship(s) remain."
                 else:
-                    message = f"✗ '{raw.upper()}' not found — final ship lost!"
+                    msg = f"✗ '{raw.upper()}' not found. Final ship lost."
         else:
-            message = "Speak a single letter, type '9' for reinforcements, or '0' to quit."
-
+            msg = "Single letter only. '9' for reinforcement. '0' to quit."
 
 def play():
     word = random.choice(WORD_LIST)
-    guessed = set()
-    wrong_letters = set()
+    guessed, wrong = set(), set()
 
-    for fleet_index in range(3):
-        result = play_fleet(word, guessed, wrong_letters, fleet_index)
-
-        if result == "win":
+    for idx in range(3):
+        result = play_fleet(word, guessed, wrong, idx)
+        if result in ("win", "lose"):
             clear()
-            print("╔══════════════════════════════════════════════════╗")
-            print("║   ✦  C Y B E R   S T A R  :  W O R D  W A R S  ✦  ║")
-            print("╚══════════════════════════════════════════════════╝\n")
-            print(f"  ★ ★ ★  MISSION COMPLETE  ★ ★ ★")
-            print(f"  The word was '{word.upper()}'.")
-            print(f"  {random.choice(VICTORY_LINES)}\n")
+            print(HEADER + "\n")
+            if result == "win":
+                print(f"  ★ ★ ★  MISSION COMPLETE  ★ ★ ★")
+                print(f"  The word was '{word.upper()}'. {random.choice(VICTORY_LINES)}\n")
+            else:
+                print(f"  ✕ ✕ ✕  EARTH HAS FALLEN  ✕ ✕ ✕")
+                print(f"  The word was '{word.upper()}'. {random.choice(DEFEAT_LINES)}\n")
             break
 
-        if result == "lose":
-            clear()
-            print("╔══════════════════════════════════════════════════╗")
-            print("║   ✦  C Y B E R   S T A R  :  W O R D  W A R S  ✦  ║")
-            print("╚══════════════════════════════════════════════════╝\n")
-            print(f"  ✕ ✕ ✕  EARTH HAS FALLEN  ✕ ✕ ✕")
-            print(f"  The word was '{word.upper()}'.")
-            print(f"  {random.choice(DEFEAT_LINES)}\n")
-            break
-
-    again = input("  Play again? (y/n) → ").strip().lower()
-    if again == "y":
+    if input("  Play again? (y/n) → ").strip().lower() == "y":
         play()
     else:
         print("\n  Sankofa — go back and fetch it. Until next time, warrior.\n")
-
 
 if __name__ == "__main__":
     play()

@@ -50,4 +50,4 @@ Each fleet comes with **1 reinforcement** that restores one destroyed starship. 
 
 1. I would like to pull the words from a external source somewhere on the internet so it could be randomly used. This would ensure no player knows the word before hand.
 
-2. I would like to implement some ASCII art in the future to make the aesthetics look more appealing
+2. I would like to implement some ASCII art in the future to make the aesthetics look more appealing. Will try and use this online resource: https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
