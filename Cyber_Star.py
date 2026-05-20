@@ -35,7 +35,7 @@ def assign_fleet(word_length):
 def render(word, guessed, wrong_letters, fleet, ships_lost, message=""):
     clear()
     print("╔══════════════════════════════════════════╗")
-    print("║     N A V A L   W O R D G U E S S       ║")
+    print("║    Cyber Star Word Wars!!!!!!     ║")
     print("╚══════════════════════════════════════════╝\n")
 
     print("  ── FLEET STATUS ─────────────────────────")
