@@ -2,6 +2,7 @@ import random
 import os
 import time
 
+# Audio setup - fails silently if pygame not installed
 try:
     import pygame
     AUDIO = True
@@ -10,6 +11,7 @@ except ImportError:
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Music file paths
 MENU_MUSIC    = os.path.join(BASE_DIR, "Colony Sunrise", "Deep-Africa-Sunrise-WVM013601.wav")
 WAVE_MUSIC    = [
     os.path.join(BASE_DIR, "Echoes from Epsilon", "AAM510_08_Calamity.wav"),
@@ -19,6 +21,7 @@ WAVE_MUSIC    = [
 VICTORY_MUSIC = os.path.join(BASE_DIR, "Colony Sunrise", "Deep-Africa-Sunrise-WVM013601.wav")
 DEFEAT_MUSIC  = os.path.join(BASE_DIR, "Cosmic Horror Tech", "CosmicStorm.wav")
 
+# Sound effect file paths
 SFX_FILES = {
     "attack":  os.path.join(BASE_DIR, "Cyberpunk Sound FX Pack Vol. 1", "Lazers and Tazers", "Pulsing Vaporwave B.wav"),
     "defend":  os.path.join(BASE_DIR, "Cyberpunk Sound FX Pack Vol. 1", "Pulse and Surge", "Mini Electric Swell.wav"),
@@ -27,6 +30,7 @@ SFX_FILES = {
 SFX_CACHE = {}
 CURRENT_TRACK = {"path": None}
 
+# Init mixer, load all SFX into cache
 def init_audio():
     if not AUDIO:
         return
@@ -44,6 +48,7 @@ def init_audio():
     except Exception as e:
         print(f"  [audio init] {e}")
 
+# Play a sound effect by key name
 def play_sfx(key):
     if not AUDIO:
         return
@@ -55,6 +60,7 @@ def play_sfx(key):
         except Exception:
             pass
 
+# Stop current track and load a new one
 def play_music(path, volume=0.6, loop=-1):
     if not AUDIO or not os.path.isfile(path):
         return
@@ -73,6 +79,7 @@ def play_music(path, volume=0.6, loop=-1):
 def play_menu_music():
     play_music(MENU_MUSIC, volume=0.6, loop=-1)
 
+# Reset track state so new wave always forces a fresh load
 def play_wave_music(wave_index):
     path = WAVE_MUSIC[wave_index % len(WAVE_MUSIC)]
     CURRENT_TRACK["path"] = None
@@ -211,6 +218,7 @@ FACTIONS = {
 # -- Ship ASCII art ------------------------------------------------------------
 
 SHIP_ART = {
+    # Shango - lightning hull designs
     "shango_1": [
         "     /\\^/\\     ",
         "    /  ~  \\    ",
@@ -238,6 +246,7 @@ SHIP_ART = {
         " \\~~~~~~~~~~~~~/ ",
         "  --~~~--~~~-- ",
     ],
+    # Kushites - pyramid hull designs
     "kush_1": [
         "      /\\      ",
         "     /##\\     ",
@@ -268,6 +277,7 @@ SHIP_ART = {
         "   [=========]   ",
         "  -|--|--|--|-- ",
     ],
+    # Yoruba - orisha curved hull designs
     "yoruba_1": [
         "    .(~~~).    ",
         "   /  |||  \\  ",
@@ -295,6 +305,7 @@ SHIP_ART = {
         "|__|_____________|__|",
         "    --|||---|||--    ",
     ],
+    # Enemy ships - scale up in size each wave
     "drone": [
         "    .---.    ",
         "   /|o o|\\   ",
@@ -371,6 +382,7 @@ SHIP_ART = {
     ],
 }
 
+# 3 waves, 3 enemies each - gets harder every wave
 WAVES = [
     {
         "name": "OUTER FLEET",
@@ -398,10 +410,13 @@ WAVES = [
     },
 ]
 
+# 15% chance any attack lands a critical hit
 CRIT_CHANCE = 0.15
 
+# Stores commander name entered at game start
 COMMANDER_NAME = {"name": "Commander"}
 
+# Lore text shown when player scans an enemy
 ENEMY_LORE = {
     "Void Drone MK-I":     "A disposable recon unit. Mass produced in the outer colonies. No soul, no mercy.",
     "Neon Jackal":         "A scavenger class fighter reprogrammed for war. Unpredictable attack patterns.",
@@ -414,6 +429,7 @@ ENEMY_LORE = {
     "Sankofa Final Reaper":"The last ship built before the war ended the shipyards. It carries that grief.",
 }
 
+# Random events that fire 20% of the time after an enemy attack
 VOID_EVENTS = [
     ("VOID SURGE",       "enemy shields restored.",         "shield",  20),
     ("KENTE DISRUPTION", "your energy drops by 1.",         "energy",  -1),
@@ -430,6 +446,7 @@ HEADER = """\
 ║               Void Fleet Command                 ║
 ╚══════════════════════════════════════════════════╝"""
 
+# Visual HP bar shown in combat
 def hp_bar(current, maximum, width=20):
     filled = int((current / maximum) * width)
     return f"[{'█' * filled}{'░' * (width - filled)}] {current}/{maximum}"
@@ -440,6 +457,7 @@ def pause(secs=1.2):
 def print_header():
     print(HEADER + "\n")
 
+# Clean exit from anywhere in the game
 def quit_game():
     stop_audio()
     print("\n  Session ended. Sankofa - until next time.\n")
@@ -449,6 +467,7 @@ def check_quit(ans):
     if ans.strip() == "0":
         quit_game()
 
+# Faction selection screen - loops until valid input
 def choose_faction():
     while True:
         play_menu_music()
@@ -477,6 +496,7 @@ def choose_faction():
         print("  Invalid choice. Enter 1, 2, or 3.")
         pause(0.8)
 
+# Builds player dict from selected faction ship - 1 repair kit per wave
 def build_player(ship):
     return {
         "name":    ship["name"],
@@ -489,6 +509,7 @@ def build_player(ship):
         "repair_kits": 1,
     }
 
+# Draws player and enemy ships side by side with stats below
 def show_status(player, enemy, wave_name, enemy_num, total_enemies):
     CLEAR()
     print_header()
@@ -507,6 +528,7 @@ def show_status(player, enemy, wave_name, enemy_num, total_enemies):
     print(f"  {player['name']:<22}{hp_bar(player['hp'], player['max_hp'])}  Shield {player['shield']}  Energy {player['energy']}  {repair_str}")
     print(f"  {enemy['name']:<22}{hp_bar(enemy['hp'], enemy['max_hp'])}\n")
 
+# Handles all player actions each turn
 def player_turn(player, enemy):
     print("  -- YOUR TURN -----------------------------------")
     print("  1. Attack        - standard strike")
@@ -520,6 +542,7 @@ def player_turn(player, enemy):
     choice = input("  Action -> ").strip()
     check_quit(choice)
 
+    # Scan - no turn cost, holds until player presses enter
     if choice == "4":
         lore = ENEMY_LORE.get(enemy["name"], "No data found on this vessel.")
         hp_pct = int((enemy["hp"] / enemy["max_hp"]) * 100)
@@ -529,6 +552,7 @@ def player_turn(player, enemy):
         print(f"    Intel          : {lore}")
         input("\n  Press Enter to return to battle -> ")
 
+    # Repair kit - 1 per wave, restores 30 HP
     elif choice == "5":
         if player.get("repair_kits", 0) > 0:
             heal = 30
@@ -538,6 +562,7 @@ def player_turn(player, enemy):
         else:
             print("\n  > No repair kits remaining.")
 
+    # Attack - 15% chance to crit for double damage
     elif choice == "1":
         play_sfx("attack")
         dmg = random.randint(14, 22)
@@ -549,11 +574,15 @@ def player_turn(player, enemy):
             print(f"\n  > ANCESTOR GUIDED STRIKE! Critical hit on {enemy['name']} for {dmg} damage!")
         else:
             print(f"\n  > Strike hits {enemy['name']} for {dmg} damage.")
+
+    # Defend - caps shield at 80
     elif choice == "2":
         play_sfx("defend")
         gain = 15
         player["shield"] = min(80, player["shield"] + gain)
         print(f"\n  > Shields reinforced. +{gain} shield -> {player['shield']} total.")
+
+    # Special moves - faction specific, costs energy
     elif choice == "3":
         print()
         for i, move in enumerate(player["specials"], 1):
@@ -585,12 +614,14 @@ def player_turn(player, enemy):
 
     pause()
 
+# Enemy attacks - 30% chance to use special, 20% chance void event fires after
 def enemy_turn(player, enemy):
     print(f"  -- {enemy['name'].upper()} ATTACKS -------------------------")
     use_special = random.random() < 0.30
     dmg  = random.randint(*enemy["special_dmg"]) if use_special else random.randint(*enemy["atk"])
     name = enemy["special"] if use_special else "standard strike"
 
+    # Shield absorbs damage before HP is hit
     absorbed = min(player["shield"], dmg)
     player["shield"] = max(0, player["shield"] - absorbed)
     player["hp"]     = max(0, player["hp"] - (dmg - absorbed))
@@ -599,6 +630,7 @@ def enemy_turn(player, enemy):
     if absorbed:
         print(f"    Shield absorbed {absorbed}. Hull took {dmg - absorbed}.")
 
+    # Void event - fires randomly after enemy attack
     if random.random() < 0.20:
         event_name, event_desc, event_type, event_val = random.choice(VOID_EVENTS)
         print(f"\n  ! VOID EVENT: {event_name} - {event_desc}")
@@ -613,6 +645,7 @@ def enemy_turn(player, enemy):
 
     pause()
 
+# Heals HP and restores 1 energy between enemies in the same wave
 def restore_between_fights(player):
     heal = random.randint(25, 40)
     player["hp"]     = min(player["max_hp"], player["hp"] + heal)
@@ -620,6 +653,7 @@ def restore_between_fights(player):
     print(f"\n  > Ship systems stabilize. +{heal} HP, +1 energy.")
     pause(1.5)
 
+# Main combat loop - alternates player and enemy turns
 def fight(player, enemy, wave_name, enemy_num, total_enemies):
     while enemy["hp"] > 0 and player["hp"] > 0:
         show_status(player, enemy, wave_name, enemy_num, total_enemies)
@@ -635,6 +669,7 @@ def fight(player, enemy, wave_name, enemy_num, total_enemies):
     pause()
     return True
 
+# Runs all 3 enemies in a wave, heals between each fight
 def run_wave(player, wave, wave_num):
     CLEAR()
     print_header()
@@ -657,6 +692,7 @@ def run_wave(player, wave, wave_num):
 
     return True
 
+# Entry point - handles title, commander name, faction select and wave loop
 def play():
     CLEAR()
     print_header()
@@ -676,6 +712,7 @@ def play():
 
     faction = choose_faction()
 
+    # Each wave upgrades the player ship automatically
     for wave_num, wave in enumerate(WAVES, 1):
         player = build_player(faction["ships"][wave_num - 1])
         if wave_num > 1:
