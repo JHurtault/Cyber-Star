@@ -1,53 +1,54 @@
-# Cyber Star: Word Wars
+## Update - June 2026
 
-This is a Cyber Punk theme games with hangman and space invader word mechanics.
+Refactored the codebase into 4 separate modules. Main file is now 85 lines.
 
-## How to Play
+1. `audio.py` - handles all music and sound effects
+2. `data.py` - stores all game data, factions, ships and lore
+3. `combat.py` - all combat logic and player actions
+4. `Cyber_Star.py` - main entry point, runs the game loop
 
-Run the game from your terminal:
-
-```bash
-python3 Cyber_Star.py
-```
-
-Guess one letter at a time to reveal the hidden word before your fleets are destroyed.
-
-## Controls
-
-| Input      | Action               |
-| ---------- | -------------------- |
-| Any letter | Guess a letter       |
-| `9`        | Call a Reinforcement |
-| `0`        | Quit the game        |
-
-## Fleet System
-
-You have three fleets standing between the enemy and Earth:
-
-1. **Outer Fleet** — first line of defense
-2. **Inner Fleet** — engaged if the Outer Fleet falls
-3. **Earth Defense Fleet** — last stand; if this falls, Earth is lost
-
-Each wrong guess destroys a starship. Lose all ships in a fleet and the enemy advances to the next one. Guess the word before all three fleets are wiped out.
-
-## Reinforcements
-
-Each fleet comes with **1 reinforcement** that restores one destroyed starship. It does not carry over to the next fleet — use it or lose it.
-
-## Requirements
-
-- Python 3.10+
-- `CyberStar_words.csv` must be in the same folder as `Cyber_Star.py`
-
-## Files
-
-| File                  | Description                |
-| --------------------- | -------------------------- |
-| `Cyber_Star.py`       | Main game file             |
-| `CyberStar_words.csv` | Word list used by the game |
-
-## future improvments
+## Future Improvements
 
 1. I would like to pull the words from a external source somewhere on the internet so it could be randomly used. This would ensure no player knows the word before hand.
 
 2. I would like to implement some ASCII art in the future to make the aesthetics look more appealing. Will try and use this online resource: https://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
+
+
+## Audio Resources
+
+**pygame.mixer - Official Documentation**
+Used to initialize the audio system, load and play music tracks and sound effects.
+https://www.pygame.org/docs/ref/mixer.html
+
+**pygame.mixer.music - Official Documentation**
+Used specifically for background music streaming and track switching between waves.
+https://www.pygame.org/docs/ref/music.html
+
+**pygame.mixer.Sound - Official Documentation**
+Used to load and play short sound effects for attack, defend and special moves.
+https://www.pygame.org/docs/ref/mixer.html#pygame.mixer.Sound
+
+**SDL2 Audio Documentation**
+pygame is built on top of SDL2. This explains the underlying audio system behavior on macOS and why proper mixer init and quit order matters.
+https://wiki.libsdl.org/SDL2/CategoryAudio
+
+**Git LFS - Large File Storage**
+Used to store WAV audio files in the GitHub repo without hitting file size limits.
+https://git-lfs.com
+
+**AudioHero - Royalty Free Audio**
+Source for all music and sound effect files used in the game. Royalty free license included with purchase.
+https://audiohero.com
+
+## Audio Bug Notes
+
+Ran into a persistent issue where background music tracks were playing on top of each other when switching between waves. Traced it back to two root causes. First, `pygame.mixer.init()` was being called at module level and again inside a function, creating two separate audio sessions that never got properly cleaned up. Second, `pygame.mixer.Sound` objects loaded into the SFX cache were 30-80 seconds long, causing them to loop and stack on every button press.
+
+Fixed it by removing the duplicate init call, building a single `init_audio()` function that does one clean `quit()` then `init()` then SFX reload in the right order. Also swapped out the long SFX files for short ones under 2 seconds and capped playback with `maxtime=2000`.
+
+Key docs that had the answers:
+
+- https://www.pygame.org/docs/ref/mixer.html#pygame.mixer.init
+- https://www.pygame.org/docs/ref/mixer.html#pygame.mixer.quit
+- https://www.pygame.org/docs/ref/music.html#pygame.mixer.music.load
+- https://stackoverflow.com/questions/44361196/pygame-mixer-music-plays-over-itself
